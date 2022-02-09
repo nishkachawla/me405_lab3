@@ -79,7 +79,7 @@ class Task:
         @param trace Set to @c True to generate a list of transitions between
                states. @b Note: This slows things down and allocates memory.
         """
-        # The function which is run to implement this task's code. Since it 
+        ## The function which is run to implement this task's code. Since it 
         # is a generator, we "run" it here, which doesn't actually run it but
         # gets it going as a generator which is ready to yield values
         self._run_gen = run_fun ()
@@ -103,16 +103,16 @@ class Task:
             self.period = period
             self._next_run = None
 
-        # Flag which causes the task to be profiled, in which the execution
+        ## Flag which causes the task to be profiled, in which the execution
         #  time of the @c run() method is measured and basic statistics kept. 
         self._prof = profile
         self.reset_profile ()
 
-        # The previous state in which the task last ran. It is used to watch
+        ## The previous state in which the task last ran. It is used to watch
         # for and track state transitions.
         self._prev_state = 0
 
-        # If transition tracing has been enabled, create an empty list in 
+        ## If transition tracing has been enabled, create an empty list in 
         # which to store transition (time, to-state) stamps
         self._trace = trace
         self._tr_data = []
@@ -139,18 +139,21 @@ class Task:
 
             # If profiling, save the start time
             if self._prof:
+                ## Time variable
                 stime = utime.ticks_us ()
 
-            # Run the method belonging to the state which should be run next
+            ## Run the method belonging to the state which should be run next
             curr_state = next (self._run_gen)
 
             # If profiling or tracing, save timing data
             if self._prof or self._trace:
+                ## Time variable
                 etime = utime.ticks_us ()
 
             # If profiling, save timing data
             if self._prof:
                 self._runs += 1
+                ## Time variable
                 runt = utime.ticks_diff (etime, stime)
                 if self._runs > 2:
                     self._run_sum += runt
@@ -169,8 +172,9 @@ class Task:
                 except MemoryError:
                     self._trace = False
                     gc.collect ()
-
+                ## State variable
                 self._prev_state = curr_state
+                ## Time variable
                 self._prev_time = etime
 
             return True
@@ -191,6 +195,7 @@ class Task:
         # If this task uses a timer, check if it's time to run run() again. If
         # so, set go flag and set the timer to go off at the next run time
         if self.period != None:
+            ## Time variable
             late = utime.ticks_diff (utime.ticks_us (), self._next_run)
             if late > 0:
                 self.go_flag = True
@@ -226,6 +231,7 @@ class Task:
         states from and to which the system transitioned. 
         @return A possibly quite large string showing state transitions
         """
+        ## Trace variable
         tr_str = 'Task ' + self.name + ':'
         if self._trace:
             tr_str += '\n'
@@ -310,7 +316,7 @@ class TaskList:
         task which is ready to run at any given time. 
         @param task The task to be appended to the list
         """
-        # See if there's a tasklist with the given priority in the main list
+        ## See if there's a tasklist with the given priority in the main list
         new_pri = task.priority
         for pri in self.pri_list:
             # If a tasklist with this priority exists, add this task to it.

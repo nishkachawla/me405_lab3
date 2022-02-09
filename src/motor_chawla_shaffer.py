@@ -14,7 +14,6 @@ This file contains code used to configure the L6206 motor.
 import pyb
 import time
 
-
 class MotorDriver:
     """!
     This class implements a motor driver for an ME405 kit. 

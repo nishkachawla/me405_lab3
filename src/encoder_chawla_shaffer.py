@@ -64,12 +64,12 @@ class EncoderDriver:
         self._ref_count = self.tim.counter()
         
         self._current_pos += self.delta
-                
+                                
     def read(self):
         """!
         This method returns the current encoder position.
         @returns    The position of the motor shaft.
-        """ 
+        """
         return self._current_pos
     
     def zero(self):
@@ -77,11 +77,6 @@ class EncoderDriver:
         This method sets the encoder position to zero.
         """
         self._current_pos = int(0)
-    
-    def step_rsp(self):
-        """!
-        This method sets the encoder position to zero.
-        """
-        pass
+
 
 

@@ -1,13 +1,14 @@
 """!
-@file basic_tasks.py
-    This file contains a demonstration program that runs some tasks, an
-    inter-task shared variable, and a queue. The tasks don't really @b do
-    anything; the example just shows how these elements are created and run.
+@file main.py
+This file contains a program that uses a task scheduler to run motors and encoders with a proportional controller.
 
-@author JR Ridgely
-@date   2021-Dec-15 JRR Created from the remains of previous example
-@copyright (c) 2015-2021 by JR Ridgely and released under the GNU
-    Public License, Version 2. 
+@details The main script calls the MotorDriver class, EncoderDriver class, and ClosedLoop controller class,
+imported as modules, to operate the motor and encoders.
+
+@author Nishka Chawla
+@author Ronan Shaffer
+@date   09-Feb-2022
+@copyright (c) Released under GNU Public License
 """
 
 import gc
@@ -20,32 +21,6 @@ import motor_chawla_shaffer
 import encoder_chawla_shaffer
 import closedloopcontrol
 import array as array
-
-# def task1_fun ():
-#     """!
-#     Task which puts things into a share and a queue.
-#     """
-#     counter = 0
-#     while True:
-#         share0.put (counter)
-#         q0.put (counter)
-#         counter += 1
-
-#         yield (0)
-
-
-# def task2_fun ():
-#     """!
-#     Task which takes things out of a queue and share to display.
-#     """
-#     while True:
-#         # Show everything currently in the queue and the value in the share
-#         print ("Share: {:}, Queue: ".format (share0.get ()), end='');
-#         while q0.any ():
-#             print ("{:} ".format (q0.get ()), end='')
-#         print ('')
-
-#         yield (0)
 
 ## Input pin configuration
 inn = pyb.Pin.IN
@@ -88,14 +63,6 @@ time_list = array.array("f", [0] * array_size)
 ## Array storing position data.
 pos_list = array.array("f", [0] * array_size)
 
-# # # Create a share and a queue to test function and diagnostic printouts
-# share0 = task_share.Share ('h', thread_protect = False, name = "Share 0")
-# q0 = task_share.Queue ('L', 16, thread_protect = False, overwrite = False,
-#                         name = "Queue 0")
-
-# shares.print_task = print_task.PrintTask (name = 'Printing', 
-#         buf_size = 100, thread_protect = True, priority = 0)
-
 ## Instantiation of Encoder 2 reading shared variable.
 enc2reading = task_share.Queue ('l', 500, thread_protect = False, overwrite = False,
                         name = "enc2reading")
@@ -116,68 +83,68 @@ motor1 = motor_chawla_shaffer.MotorDriver(pinENA, pinB4, pinB5, 3)
 motor2 = motor_chawla_shaffer.MotorDriver(pinENB, pinA0, pinA1, 5)
 
 ## Instantiation of encoder 1 object.
-encoder1 = encoder_chawla_shaffer.EncoderDriver(pinB6, pinB7, 4)
+encoder1 = encoder_chawla_shaffer.EncoderDriver(pinC6, pinC7, 8)
 ## Instantiation of encoder 2 object.
-encoder2 = encoder_chawla_shaffer.EncoderDriver(pinC6, pinC7, 8)
+encoder2 = encoder_chawla_shaffer.EncoderDriver(pinB6, pinB7, 4)
 
 # Zeroing encoder 1.
 encoder1.zero()
 # Zeroing encoder 2.
 encoder2.zero()
+# Clears encoder 2 queue.
+enc2reading.clear()
 
-## Instantiation of controller object.
-#setpoint eventually changed to get() **********
+## Instantiation of controller 1 object.
 controller1 = closedloopcontrol.ClosedLoop(motor1setpoint.put(int(16384)), kp1.get(), int(100), int(-100))
-## Instantiation of controller object.
-#setpoint eventually changed to get() **********
+## Instantiation of controller 2 object.
 controller2 = closedloopcontrol.ClosedLoop(motor2setpoint.put(int(16384)), kp2.get(), int(100), int(-100))
-        
+
 def motor1_func ():
     """!
-    Task which puts things into a share and a queue.
+    Task which runs Motor 1, Encoder 1, and Controller 1.
     """
+    ## Variable used to record time.
+    diff = 0
+    ## Start time variable.
+    start_time = utime.ticks_ms()
     while True:
-        # Sets motor duty cycle to actuation level
+        ## Next time variable.
+        next_time = utime.ticks_ms()
+        diff = utime.ticks_diff(next_time, start_time)
         encoder1.update()
-        # enc1reading.put(encoder1.read())
-        # encreading.put(encoder1.read())
-        # print_task.put(encoder1.read())
-        ## Variable storing Encoder 2 position.
-        # count_A = encoder1.read()
+        # Sets motor duty cycle to actuation level
         motor1.set_duty_cycle(controller1.run(motor1setpoint.get(),encoder1.read()))
+        print_task.put(str(diff)+','+str(encoder1.read())+'\r\n')
 
         yield (0)
         
 def motor2_func ():
     """!
-    Task which puts things into a share and a queue.
+    Task which runs Motor 2, Encoder 2, and Controller 2.
     """
+    # Variable used to record time.
+    diff = 0
+    ## Start time variable.
+    start_time = utime.ticks_ms()
     while True:
-        # Sets motor duty cycle to actuation level
+        ## Next time variable.
+        next_time = utime.ticks_ms()
+        diff = utime.ticks_diff(next_time, start_time)
         encoder2.update()
-        # enc2reading.put(encoder2.read())
-        # encreading.put(encoder2.read())
-        print_task.put(str(encoder2.read()))
-        ## Variable storing Encoder 2 position.
-        # count_B = encoder2.read()
-        motor2.set_duty_cycle(controller2.run(motor2setpoint.get(),encoder1.read()))
-
+        # Sets motor duty cycle to actuation level
+        motor2.set_duty_cycle(controller2.run(motor2setpoint.get(),encoder2.read()))
+        print_task.put(str(diff)+','+str(encoder2.read())+'\r\n')
+        
         yield (0)
         
 def print_func ():
     """!
-    Task which takes things out of a queue and share to display.
-    """
+    Task which prints a queue of Motor 1 encoder readings.
+    """  
+    ## Runs counter
     runs = 0
-    while True:   
+    while True:
         print_task.run()
-        # while enc2reading.any():
-            # encreading.run()
-            # pos_list[runs].append(enc2reading.get())
-            # print ("{:} ".format(enc2reading.get())) # this works 
-            # print ("{:} ".format(pos_list[runs]))    # this doesnt
-            
-            # print(pos_list[runs])
         runs += 1
 
         yield (0)
@@ -193,14 +160,13 @@ if __name__ == "__main__":
     # allocated for state transition tracing, and the application will run out
     # of memory after a while and quit. Therefore, use tracing only for 
     # debugging and set trace to False when it's not needed
-    # task1 = cotask.Task (task1_fun, name = 'Task_1', priority = 1, 
-    #                      period = 400, profile = True, trace = False)
-    # task2 = cotask.Task (task2_fun, name = 'Task_2', priority = 2, 
-    #                      period = 1500, profile = True, trace = False)
+    ## Motor 1 Task
     motor1_task = cotask.Task (motor1_func, name = 'motor1_task', priority = 2, 
-                         period = 10, profile = True, trace = False)
+                         period = 40, profile = True, trace = False)
+    ## Motor 2 Task
     motor2_task = cotask.Task (motor2_func, name = 'motor2_task', priority = 2, 
-                         period = 10, profile = True, trace = False)
+                         period = 40, profile = True, trace = False)
+    ## Print Task
     read_task = cotask.Task (print_func, name = 'read_task', priority = 3, 
                          period = 20, profile = True, trace = False)
     
@@ -213,19 +179,19 @@ if __name__ == "__main__":
     KP2 = input('Please enter a Kp 2: ')
     controller2.set_Kp(float(KP2))
     kp2.put(float(KP2))
-
-    # cotask.task_list.append (task1)
-    # cotask.task_list.append (task2)
+    
     cotask.task_list.append(motor1_task)
     cotask.task_list.append(motor2_task)
     cotask.task_list.append(read_task)
-    # cotask.task_list.append(encreading)
+    
+    ## Start time variable
+    start_time = utime.ticks_ms()
 
     # Run the memory garbage collector to ensure memory is as defragmented as
     # possible before the real-time scheduler is started
     gc.collect ()
 
-    # Run the scheduler with the chosen scheduling algorithm. Quit if any 
+    ## Run the scheduler with the chosen scheduling algorithm. Quit if any 
     # character is received through the serial port
     vcp = pyb.USB_VCP ()
     vcp.read ()

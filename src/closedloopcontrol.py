@@ -61,8 +61,9 @@ class ClosedLoop:
     def run(self, setpoint, msr):      
         """!
         This method performs proportional control on the motor speed.
-        @param  msr  The measured speed of the motor.
-        @returns    The actuation level of the controller.
+        @param  setpoint  Proportional gain value set by the user.
+        @param  msr       The measured speed of the motor.
+        @returns          The actuation level of the controller.
         """ 
 #        add integral stuff if we want
         ## Setpoint variable for motor reference speed.
@@ -71,6 +72,7 @@ class ClosedLoop:
         self.msr = msr
         ## Error between the setpoint value and the measured value
         self.error = self.setpoint - self.msr
+#         print(self.msr)
         
         if self.error > 0:
             self.act = int(self.Kp*abs(self.error))
